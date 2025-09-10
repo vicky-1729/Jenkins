@@ -19,7 +19,7 @@ pipeline {
             steps{
                 echo "Testing....!"
                 echo "Course name is: ${env.Course}"
-                sh 'env | sort'
+                
             }
         }
     }
