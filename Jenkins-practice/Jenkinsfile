@@ -18,7 +18,8 @@ pipeline {
         stage('Test'){
             steps{
                 echo "Testing....!"
-                env
+                echo "Course name is: ${env.Course}"
+                sh 'env | sort'
             }
         }
     }
@@ -26,14 +27,14 @@ pipeline {
     // post 
     post{
         always {
-            echo "it is running if you got succes means it is working else it is not working"
+            echo "it is running if you got success means it is working else it is not working"
         }
-        succes {
+        success {
             echo "it is working bro...!"
             
         }
         failure {
-            echo "it is not wprking...!"
+            echo "it is not working...!"
         }
     }
 
