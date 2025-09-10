@@ -1,0 +1,40 @@
+pipeline {
+    agent any
+    environment{
+        Course = "Jenkins"
+    }
+    //build
+    stages{
+        stage('Build'){
+            steps{
+            echo "Building......!"
+            }
+        }
+        stage('Deploy'){
+            steps{
+                echo "Deploying....!"
+            }
+        }
+        stage('Test'){
+            steps{
+                echo "Testing....!"
+                env
+            }
+        }
+    }
+
+    // post 
+    post{
+        always {
+            echo "it is running if you got succes means it is working else it is not working"
+        }
+        succes {
+            echo "it is working bro...!"
+            
+        }
+        failure {
+            echo "it is not wprking...!"
+        }
+    }
+
+}
