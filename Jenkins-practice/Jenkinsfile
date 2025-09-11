@@ -5,6 +5,10 @@ pipeline {
     environment{
         Course = "Jenkins"
     }
+
+    options{
+        timeout
+    }
     //build
     stages{
         stage('Build'){
