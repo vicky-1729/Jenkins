@@ -1,29 +1,30 @@
 pipeline {
     agent { label 'AGENT-1' }
 
-    environment{
-        Component = "catalogue"
+    environment {
+        appVersion = ''
     }
+
     stages {
         stage('Build') {
             steps {   
-                script{
-                        echo "Building....!"
+                script{  
+                    echo "Building....!"
+                    def packageJson = readJSON file: 'package.json'
+                    appVersion = packageJson.version
+                    echo "Package version: ${appVersion}"
+
                     sh """
                         npm install
                     """
+
                 }
             }
         }
 
         stage('Testing') {
             steps {
-                script{
-                    echo "Testing...!"
-                    sh """
-                        npm install
-                    """
-                }
+                  echo "Testing....!"
             }
         }
     }
