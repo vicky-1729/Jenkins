@@ -1,16 +1,29 @@
 pipeline {
     agent { label 'AGENT-1' }
 
+    environment{
+        Component = "catalogue"
+    }
     stages {
         stage('Build') {
-            steps {
-                echo "Building....!"
+            steps {   
+                script{
+                        echo "Building....!"
+                    sh """
+                        npm install
+                    """
+                }
             }
         }
 
         stage('Testing') {
             steps {
-                echo "Testing...!"
+                script{
+                    echo "Testing...!"
+                    sh """
+                        npm install
+                    """
+                }
             }
         }
     }
