@@ -1,31 +1,29 @@
 pipeline {
-    agent {
-        label AGENT-1
-    }
-    stages{
-        stage('build'){
-            steps{
-               echo "Building....!"
+    agent { label 'AGENT-1' }
+
+    stages {
+        stage('Build') {
+            steps {
+                echo "Building....!"
             }
         }
 
-        stage('testing'){
-            steps{
+        stage('Testing') {
+            steps {
                 echo "Testing...!"
             }
         }
     }
 
     post {
-        success{
-            echo "success..!"
+        success {
+            echo "Success..!"
         }
-        failure{
-            echo "failure...!"
+        failure {
+            echo "Failure...!"
         }
-        always{
-            echo "this is roboshop-project"
+        always {
+            echo "This is roboshop-project"
         }
     }
-
 }
