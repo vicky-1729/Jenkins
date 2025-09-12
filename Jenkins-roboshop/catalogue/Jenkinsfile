@@ -24,9 +24,17 @@ pipeline {
             }
         }
 
-        stage('Testing') {
+        stage('Docker image Build') {
             steps {
-                echo "Testing....!"
+                script{     
+                withAWS(credentials: 'AWS-VICKY-CRED', region: us-east-1)
+                sh """
+                 echo "Listing all S3 buckets..."
+                 aws s3 ls
+
+                """
+                }
+
             }
         }
     }
