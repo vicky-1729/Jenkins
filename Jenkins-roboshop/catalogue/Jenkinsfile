@@ -36,18 +36,27 @@ pipeline {
 
         stage('Docker image Build') {
             steps {
-                script {     
-                    dir('Jenkins-roboshop/catalogue')
-                    {
-                    withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1') {
-                        
-                        sh """
-                            echo "Building Docker Image...pushing to ECR "
-                            aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com
-                            docker build -t ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion} .
-                            docker push ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion}
-                        """
+                script {    
+                    def userChoice = input(
+                        message: "Do you want to build & push Docker image?",
+                        parameters: [
+                            choice(name: 'ANSWER', choices: ['YES', 'NO'], description: 'Select YES to continue')
+                        ]
+                    )
+
+                    if (userChoice == 'NO') {
+                        error("Build aborted by user") 
                     }
+                        
+                    dir('Jenkins-roboshop/catalogue') {
+                        withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1') {
+                            sh """
+                                echo "Building Docker Image...pushing to ECR "
+                                aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com
+                                docker build -t ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion} .
+                                docker push ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion}
+                            """
+                        }
                     }
                 }
             }
