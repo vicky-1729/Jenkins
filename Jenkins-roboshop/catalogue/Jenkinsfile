@@ -10,14 +10,6 @@ pipeline {
             steps {   
                 script{  
                     echo "Building....!"
-                    
-                    // Check if package.json exists, if not create a dummy one
-                    def packageJsonExists = fileExists 'package.json'
-                    if (!packageJsonExists) {
-                        echo "package.json not found, creating dummy version"
-                        writeFile file: 'package.json', text: '{"version": "1.0.0"}'
-                    }
-                    
                     def packageJson = readJSON file: 'package.json'
                     appVersion = packageJson.version
                     echo "Package version: ${appVersion}"
@@ -49,3 +41,7 @@ pipeline {
         }
     }
 }
+
+git add Jenkins/Jenkins-roboshop/catalogue/package.json
+git commit -m "Add package.json file"
+git push
