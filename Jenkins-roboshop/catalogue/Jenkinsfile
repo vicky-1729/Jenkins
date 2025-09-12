@@ -6,7 +6,7 @@ pipeline {
     }
 
     stages {
-        stage('Build') {
+        stage('Reading package.json ') {
             steps {
                 script {
                     dir('Jenkins-roboshop/catalogue') {
