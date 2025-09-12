@@ -28,6 +28,7 @@ pipeline {
                                 echo "00-vpc infra is creating...! "
                                 
                                 terraform init --reconfigure
+                                terraform init -upgrade
                             """
 
                         }
@@ -42,6 +43,7 @@ pipeline {
                     withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1'){
                         sh """
                         echo "terraform planning is going"
+                        
                         terraform plan
                         """
                     }
