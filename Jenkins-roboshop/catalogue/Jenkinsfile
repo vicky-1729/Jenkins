@@ -10,7 +10,15 @@ pipeline {
             steps {   
                 script{  
                     echo "Building....!"
-                    def packageJson = readJSON file: 'Jenkins/Jenkins-roboshop/catalogue/package.json'
+                    
+                    // Check if package.json exists, if not create a dummy one
+                    def packageJsonExists = fileExists 'package.json'
+                    if (!packageJsonExists) {
+                        echo "package.json not found, creating dummy version"
+                        writeFile file: 'package.json', text: '{"version": "1.0.0"}'
+                    }
+                    
+                    def packageJson = readJSON file: 'package.json'
                     appVersion = packageJson.version
                     echo "Package version: ${appVersion}"
 
