@@ -1,0 +1,49 @@
+pipeline {
+    agent {
+        label 'AGENT-1'
+    }
+    
+    options {
+        timeout(time: 30, unit: 'MINUTES') // Pipeline will time out after 30 min
+        retry(1)                           // Retry the entire pipeline once if it fails
+        disableConcurrentBuilds()          // Prevents parallel execution of the same pipeline
+        timestamps()                       // Adds timestamps to console output
+        ansiColor('xterm')
+    }
+    environment{
+        appVersion = ''                    // Will store version from package.json
+        ACC_ID = "741448928336"            // AWS Account ID
+        REGION = "us-east-1"               // AWS Region
+        PROJECT = "roboshop"               // Project name used in ECR path
+        COMPONENT = "catalogue"            // Component name used in ECR path
+    }
+
+    stages{
+        stage('init'){
+            script{
+                dir('Jenkins-roboshop/jenkins-roboshop-infra/00-vpc'){
+                    withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1'){
+                        sh """
+                            echo "00-vpc infra is creating...! "
+                            terraform init
+                        """
+
+                    }
+                }
+            }
+        }
+    }
+
+
+    post{
+        success{
+            echo "success"
+        }
+        failure{
+            echo "failure"
+        }
+        always{
+            echo "roboshop ...result was above"
+        }
+    }
+}

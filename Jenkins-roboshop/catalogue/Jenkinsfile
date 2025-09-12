@@ -39,17 +39,17 @@ pipeline {
             steps {
                 script {    
                     // Interactive component - ask for user confirmation before proceeding
-                    def userChoice = input(
-                        message: "Do you want to build & push Docker image?",
-                        parameters: [
-                            choice(name: 'ANSWER', choices: ['YES', 'NO'], description: 'Select YES to continue')
-                        ]
-                    )
+                    // def userChoice = input(
+                    //     message: "Do you want to build & push Docker image?",
+                    //     parameters: [
+                    //         choice(name: 'ANSWER', choices: ['YES', 'NO'], description: 'Select YES to continue')
+                    //     ]
+                    // )
 
-                    // Early termination if user declines to proceed
-                    if (userChoice == 'NO') {
-                        error("Build aborted by user") 
-                    }
+                    // // Early termination if user declines to proceed
+                    // if (userChoice == 'NO') {
+                    //     error("Build aborted by user") 
+                    // }
                         
                     dir('Jenkins-roboshop/catalogue') {
                         // Use AWS credentials for ECR access
