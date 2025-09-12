@@ -37,9 +37,6 @@ pipeline {
                             echo "Listing all S3 buckets..."
                             aws s3 ls
                         """
-                        
-                        // Add Docker build commands here
-                        // sh "docker build -t catalogue:${appVersion} ."
                     }
                 }
             }
