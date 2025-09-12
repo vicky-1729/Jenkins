@@ -10,7 +10,7 @@ pipeline {
             steps {   
                 script{  
                     echo "Building....!"
-                    def packageJson = readJSON file: 'package.json'
+                    def packageJson = readJSON file: 'Jenkins-roboshop/catalogue/package.json'
                     appVersion = packageJson.version
                     echo "Package version: ${appVersion}"
 
