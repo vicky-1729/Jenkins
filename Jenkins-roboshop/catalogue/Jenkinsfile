@@ -27,7 +27,7 @@ pipeline {
         stage('Docker image Build') {
             steps {
                 script{     
-                withAWS(credentials: 'AWS-VICKY-CRED', region: us-east-1)
+                withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1')
                 sh """
                  echo "Listing all S3 buckets..."
                  aws s3 ls
