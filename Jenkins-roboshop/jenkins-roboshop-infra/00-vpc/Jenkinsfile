@@ -35,6 +35,9 @@ pipeline {
                 }
             }
         }
+
+
+
         stage('plan'){
             steps{
                 script{
@@ -49,6 +52,16 @@ pipeline {
 
                     }
                 }
+            }
+        }
+
+        stage('Approval') {
+            steps {
+                input(
+                    message: "Plan is okay. Do you want to continue or cancel?",
+                    ok: "Approve",
+                    submitter: "vs-admin"
+                )
             }
         }
     }
