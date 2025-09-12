@@ -27,6 +27,15 @@ pipeline {
                 echo "Course name is: ${env.Course}"
             }
         }
+        stage('Approval') {
+            steps {
+                input(
+                    message: "Plan is okay. Do you want to continue or cancel?",
+                    ok: "Approve",
+                    submitter: "vs-admin"
+                )
+            }
+        }
     }
 
     // post 
