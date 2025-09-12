@@ -9,6 +9,7 @@ pipeline {
         stage('Build') {
             steps {   
                 script{  
+                    dir('Jenkins-roboshop/catalogue')
                     echo "Building....!"
                     def packageJson = readJSON file: 'package.json'
                     appVersion = packageJson.version
@@ -41,7 +42,3 @@ pipeline {
         }
     }
 }
-
-git add Jenkins/Jenkins-roboshop/catalogue/package.json
-git commit -m "Add package.json file"
-git push
