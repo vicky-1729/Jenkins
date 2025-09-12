@@ -9,6 +9,10 @@ pipeline {
     }
     environment {
         appVersion = ''
+        ACC_ID = "741448928336"
+        REGION = "us-east-1"
+        PROJECT = "roboshop"
+        COMPONENT = "catalogue"
     }
 
     stages {
@@ -35,8 +39,10 @@ pipeline {
                 script {     
                     withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1') {
                         sh """
-                            echo "Listing all S3 buckets..."
-                            aws s3 ls
+                            echo "Building Docker Image...pushing to ECR "
+                            aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${AC-ID}.dkr.ecr.${REGION}.amazonaws.com
+                            docker build -t ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion} .
+                            docker push ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion}
                         """
                     }
                 }
