@@ -27,8 +27,7 @@ pipeline {
                             sh """
                                 echo "00-vpc infra is creating...! "
                                 
-                                terraform init --reconfigure
-                                terraform init -upgrade
+                                terraform init -upgrade --reconfigure
                             """
 
                         }
