@@ -1,48 +1,115 @@
 pipeline {
     agent {
-        label "roboshop-agent"  // Which Jenkins agent to use
+        label "roboshop-agent"  // Specifies which Jenkins agent to run this pipeline on
     }
     
     options {
-        timeout(time: 30, unit: 'MINUTES')  // Time out after 30 minutes
-        disableConcurrentBuilds()           // Don't run multiple builds at once
-        timestamps()                        // Add timestamps to console output
+        timeout(time: 30, unit: 'MINUTES')  // Pipeline will time out after 30 min
+        retry(1)                            // Retry the entire pipeline once if it fails
+        disableConcurrentBuilds()           // Prevents parallel execution of the same pipeline
+        timestamps()                        // Adds timestamps to console output
+        ansiColor('xterm')                  // Adds color to console output
     }
     
     environment {
-        COURSE = "Jenkins"                  // Example environment variable
-        VERSION = "1.0.${BUILD_NUMBER}"     // Simple version using build number
+        COURSE = "Jenkins"                  // Global environment variable
+        VERSION = "1.0.${BUILD_NUMBER}"     // Dynamic version using Jenkins BUILD_NUMBER
+        ARTIFACT_NAME = "app-${VERSION}"    // Artifact naming convention
+        EMAIL_RECIPIENTS = "admin@example.com" // Notification recipients
+    }
+    
+    // Parameters that can be selected when triggering the build
+    parameters {
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'stage', 'prod'], description: 'Select deployment environment')
+        booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run automated tests?')
+        string(name: 'BRANCH', defaultValue: 'main', description: 'Git branch to build')
     }
     
     stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    echo "Checking out code from repository..."
+                    // Simulating git checkout
+                    // git branch: "${params.BRANCH}", url: 'https://github.com/yourusername/yourrepo.git'
+                }
+            }
+        }
+        
         stage('Build') {
             steps {
-                echo "Building version: ${VERSION}"
-                // sh 'npm install'
-                // sh 'npm run build'
+                script {
+                    echo "Building application version: ${VERSION}..."
+                    echo "Selected environment: ${params.ENVIRONMENT}"
+                    
+                    // Example build commands (commented out for this skeleton)
+                    // sh 'npm install'
+                    // sh 'npm run build'
+                }
             }
         }
         
-        stage('Test') {
+        stage('Unit Tests') {
+            when {
+                expression { return params.RUN_TESTS }
+            }
             steps {
-                echo "Running tests..."
-                echo "Course name is: ${env.COURSE}"
+                echo "Running unit tests..."
                 // sh 'npm test'
+                
+                // Example of publishing test results
+                // junit 'test-results/*.xml'
             }
         }
         
-        stage('Deploy') {
+        stage('Code Quality Analysis') {
             steps {
-                echo "Deploying application..."
-                // sh 'deploy-script.sh'
+                echo "Running code quality checks..."
+                // Example SonarQube integration
+                // withSonarQubeEnv('SonarQube') {
+                //     sh 'sonar-scanner'
+                // }
+            }
+        }
+        
+        stage('Build Artifact') {
+            steps {
+                echo "Creating deployable artifact: ${ARTIFACT_NAME}"
+                // sh "zip -r ${ARTIFACT_NAME}.zip dist/*"
+                
+                // Archive the artifact in Jenkins
+                // archiveArtifacts artifacts: "${ARTIFACT_NAME}.zip", fingerprint: true
+            }
+        }
+        
+        stage('Deploy to ${params.ENVIRONMENT}') {
+            steps {
+                echo "Deploying to ${params.ENVIRONMENT} environment..."
+                
+                // Example of deployment commands
+                // sh "deploy-script.sh --env=${params.ENVIRONMENT} --version=${VERSION}"
+            }
+        }
+        
+        stage('Integration Tests') {
+            when {
+                expression { return params.RUN_TESTS && params.ENVIRONMENT != 'prod' }
+            }
+            steps {
+                echo "Running integration tests against ${params.ENVIRONMENT} environment..."
+                // sh "run-integration-tests.sh --env=${params.ENVIRONMENT}"
             }
         }
         
         stage('Approval') {
+            when {
+                expression { return params.ENVIRONMENT == 'prod' }
+            }
             steps {
                 input(
-                    message: "Continue to next step?",
-                    ok: "Approve"
+                    message: "Deploy to PRODUCTION environment?",
+                    ok: "Approve",
+                    submitter: "vs-admin"
                 )
             }
         }
@@ -50,15 +117,32 @@ pipeline {
     
     post {
         always {
-            echo "Pipeline finished - cleanup if needed"
+            echo "Pipeline execution completed. Cleaning up resources..."
+            // cleanWs() // Uncomment to clean workspace after build
         }
         
         success {
-            echo "Build successful!"
+            echo "Build Successful! Artifact ${ARTIFACT_NAME} is ready."
+            // Notification example
+            // mail to: "${EMAIL_RECIPIENTS}", 
+            //      subject: "Build Successful: ${JOB_NAME} #${BUILD_NUMBER}",
+            //      body: "Build completed successfully. Check: ${BUILD_URL}"
         }
         
         failure {
-            echo "Build failed. Check logs for details."
+            echo "Build Failed! Check logs for details."
+            // Notification example
+            // mail to: "${EMAIL_RECIPIENTS}", 
+            //      subject: "Build Failed: ${JOB_NAME} #${BUILD_NUMBER}",
+            //      body: "Build failed. Check: ${BUILD_URL}"
+        }
+        
+        unstable {
+            echo "Build is unstable! Tests may have failed."
+        }
+        
+        changed {
+            echo "Build status changed from previous build."
         }
     }
 }
