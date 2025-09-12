@@ -1,31 +1,32 @@
 pipeline {
-    agent { label 'AGENT-1' }
+    agent { label 'AGENT-1' } // Specifies which Jenkins agent to run this pipeline on
 
     options {
         timeout(time: 30, unit: 'MINUTES') // Pipeline will time out after 30 min
-        retry(1)
-        disableConcurrentBuilds()
-        timestamps() 
+        retry(1)                           // Retry the entire pipeline once if it fails
+        disableConcurrentBuilds()          // Prevents parallel execution of the same pipeline
+        timestamps()                       // Adds timestamps to console output
     }
     environment {
-        appVersion = ''
-        ACC_ID = "741448928336"
-        REGION = "us-east-1"
-        PROJECT = "roboshop"
-        COMPONENT = "catalogue"
+        appVersion = ''                    // Will store version from package.json
+        ACC_ID = "741448928336"            // AWS Account ID
+        REGION = "us-east-1"               // AWS Region
+        PROJECT = "roboshop"               // Project name used in ECR path
+        COMPONENT = "catalogue"            // Component name used in ECR path
     }
 
     stages {
         stage('Reading package.json ') {
             steps {
                 script {
-                    dir('Jenkins-roboshop/catalogue') {
+                    dir('Jenkins-roboshop/catalogue') { // Change to the correct directory containing package.json
                         echo "Building....!"
-                        // Read package.json to get version
+                        // Read package.json to get version - this will be used for Docker tag
                         def packageJson = readJSON file: 'package.json'
                         appVersion = packageJson.version
                         echo "Package version: ${appVersion}"
                         
+                        // Install dependencies for the Node.js application
                         sh """
                             npm install
                         """
@@ -37,6 +38,7 @@ pipeline {
         stage('Docker image Build') {
             steps {
                 script {    
+                    // Interactive component - ask for user confirmation before proceeding
                     def userChoice = input(
                         message: "Do you want to build & push Docker image?",
                         parameters: [
@@ -44,16 +46,23 @@ pipeline {
                         ]
                     )
 
+                    // Early termination if user declines to proceed
                     if (userChoice == 'NO') {
                         error("Build aborted by user") 
                     }
                         
                     dir('Jenkins-roboshop/catalogue') {
+                        // Use AWS credentials for ECR access
                         withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1') {
                             sh """
                                 echo "Building Docker Image...pushing to ECR "
+                                # Login to Amazon ECR
                                 aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com
+                                
+                                # Build the Docker image with version tag from package.json
                                 docker build -t ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion} .
+                                
+                                # Push the image to ECR repository
                                 docker push ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion}
                             """
                         }
@@ -66,12 +75,17 @@ pipeline {
     post {
         success {
             echo "Success..!"
+            // Additional actions to take on successful completion can be added here
+            // Examples: Slack notifications, email notifications, trigger downstream jobs
         }
         failure {
             echo "Failure...!"
+            // Actions to take on failure - could add notifications or cleanup steps
         }
         always {
             echo "This is roboshop-project"
+            // Steps that should always run regardless of build result
+            // Example: cleanWs() would clean up the workspace
         }
     }
 }
