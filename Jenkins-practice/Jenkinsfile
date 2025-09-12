@@ -1,55 +1,64 @@
 pipeline {
     agent {
-        label "roboshop-agent"
+        label "roboshop-agent"  // Which Jenkins agent to use
     }
-    environment{
-        Course = "Jenkins"
+    
+    options {
+        timeout(time: 30, unit: 'MINUTES')  // Time out after 30 minutes
+        disableConcurrentBuilds()           // Don't run multiple builds at once
+        timestamps()                        // Add timestamps to console output
     }
-
-    options{
-        timeout
+    
+    environment {
+        COURSE = "Jenkins"                  // Example environment variable
+        VERSION = "1.0.${BUILD_NUMBER}"     // Simple version using build number
     }
-    //build
-    stages{
-        stage('Build'){
-            steps{
-            echo "Building......!"
+    
+    stages {
+        stage('Build') {
+            steps {
+                echo "Building version: ${VERSION}"
+                // sh 'npm install'
+                // sh 'npm run build'
             }
         }
-        stage('Deploy'){
-            steps{
-                echo "Deploying....!"
+        
+        stage('Test') {
+            steps {
+                echo "Running tests..."
+                echo "Course name is: ${env.COURSE}"
+                // sh 'npm test'
             }
         }
-        stage('Test'){
-            steps{
-                echo "Testing....!"
-                echo "Course name is: ${env.Course}"
+        
+        stage('Deploy') {
+            steps {
+                echo "Deploying application..."
+                // sh 'deploy-script.sh'
             }
         }
+        
         stage('Approval') {
             steps {
                 input(
-                    message: "Plan is okay. Do you want to continue or cancel?",
-                    ok: "Approve",
-                    submitter: "vs-admin"
+                    message: "Continue to next step?",
+                    ok: "Approve"
                 )
             }
         }
     }
-
-    // post 
-    post{
+    
+    post {
         always {
-            echo "it is running if you got success means it is working else it is not working"
+            echo "Pipeline finished - cleanup if needed"
         }
+        
         success {
-            echo "it is working bro...!"
-            
+            echo "Build successful!"
         }
+        
         failure {
-            echo "it is not working...!"
+            echo "Build failed. Check logs for details."
         }
     }
-
 }
