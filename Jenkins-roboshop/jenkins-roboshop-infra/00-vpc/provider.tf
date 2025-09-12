@@ -5,17 +5,16 @@ terraform {
       version = "5.98.0"
     }
   }
-  # backend "s3" {  
-  #   bucket       = "vs-roboshop-infra-dev"  
-  #   key          = "roboshop-infra-dev"  
-  #   region       = "us-east-1"  
-  #   encrypt      = true  
-  #   use_lockfile = true  #S3 native locking
-  # }  
 
-  # we are using local just for practicse
+  backend "s3" {
+    bucket = "latest-vs-remote-state-dev"
+    key    = "roboshop-dev-cicd"
+    region = "us-east-1"
+    encrypt = true
+  }
 }
 
-provider "aws"{
-    region = "us-east-1"
+provider "aws" {
+  # Configuration options
+  region = "us-east-1"
 }
