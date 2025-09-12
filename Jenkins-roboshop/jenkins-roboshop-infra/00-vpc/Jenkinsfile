@@ -20,15 +20,17 @@ pipeline {
 
     stages{
         stage('init'){
-            script{
-                dir('Jenkins-roboshop/jenkins-roboshop-infra/00-vpc'){
-                    withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1'){
-                        sh """
-                            echo "00-vpc infra is creating...! "
-                            
-                            terraform init --reconfigure
-                        """
+            steps {
+                script{
+                    dir('Jenkins-roboshop/jenkins-roboshop-infra/00-vpc'){
+                        withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1'){
+                            sh """
+                                echo "00-vpc infra is creating...! "
+                                
+                                terraform init --reconfigure
+                            """
 
+                        }
                     }
                 }
             }
