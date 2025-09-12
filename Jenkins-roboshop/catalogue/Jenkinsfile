@@ -3,7 +3,9 @@ pipeline {
 
     options {
         timeout(time: 30, unit: 'MINUTES') // Pipeline will time out after 30 min
-        
+        retry(1)
+        disableConcurrentBuilds()
+
     }
     environment {
         appVersion = ''
