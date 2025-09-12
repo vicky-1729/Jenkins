@@ -6,48 +6,52 @@ pipeline {
     }
 
     stages {
-        stage('Reading package.json ') {
+
+        stage('Reading package.json') {
             steps {
                 script {
+                    // Go to the correct directory
                     dir('Jenkins-roboshop/catalogue') {
-                        echo "Building....!"
+                        echo "📦 Reading package.json and installing dependencies..."
+                        
                         // Read package.json to get version
                         def packageJson = readJSON file: 'package.json'
                         appVersion = packageJson.version
-                        echo "Package version: ${appVersion}"
-                        
-                        sh """
-                            npm install
-                        """
+                        echo "✅ Package version: ${appVersion}"
+
+                        // Install dependencies
+                        sh "npm install"
                     }
                 }
             }
         }
 
-        stage('Docker image Build') {
+        stage('Docker Image Build') {
             steps {
-                script{     
-                withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1')
-                sh """
-                 echo "Listing all S3 buckets..."
-                 aws s3 ls
-
-                """
+                script {
+                    echo "🐳 Building Docker image and listing S3 buckets..."
+                    
+                    // Use AWS credentials and region
+                    withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1') {
+                        sh '''
+                            echo "📂 Listing all S3 buckets..."
+                            aws s3 ls
+                        '''
+                    }
                 }
-
             }
         }
     }
 
     post {
         success {
-            echo "Success..!"
+            echo "✅ Build completed successfully!"
         }
         failure {
-            echo "Failure...!"
+            echo "❌ Build failed!"
         }
         always {
-            echo "This is roboshop-project"
+            echo "📌 This is roboshop-project"
         }
     }
 }
