@@ -1,5 +1,6 @@
 pipeline {
     agent {
+        
         label "roboshop-agent"  // Specifies which Jenkins agent to run this pipeline on
     }
     
