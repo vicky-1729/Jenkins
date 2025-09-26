@@ -63,6 +63,31 @@ pipeline {
                 )
             }
         }
+
+        stage('Destroy'){
+            steps{
+                script{
+                    dir('Jenkins-roboshop/jenkins-roboshop-infra/00-vpc'){
+                       withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1'){
+                        sh """
+                        echo "Terraform is destroying"
+                        
+                        """
+                       }
+                    }
+                }
+            }
+        }
+
+         stage('Destroy_input') {
+            steps {
+                input(
+                    message: "Plan is okay. Do you want to continue or cancel?",
+                    ok: "Approve",
+                    submitter: "vs-admin"
+                )
+            }
+        }
     }
 
 
