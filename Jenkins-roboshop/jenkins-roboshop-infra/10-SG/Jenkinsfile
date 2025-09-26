@@ -5,7 +5,7 @@ pipeline {
     environment { 
         appVersion = ''
         REGION = "us-east-1"
-        ACC_ID = "315069654700"
+        ACC_ID = "741448928336"
         PROJECT = "roboshop"
     }
     options {
@@ -25,11 +25,12 @@ pipeline {
         stage('init') {
             steps {
                 script {
-                    withAWS(credentials: 'aws-creds', region: 'us-east-1') {
-                        sh """
-                            echo "sg infra is initialing ...." 
-                            terraform init -reconfigure
-                        """
+                    dir('Jenkins-roboshop/jenkins-roboshop-infra/10-SG'){
+                        withAWS(credentials: 'aws-creds', region: 'us-east-1') {
+                            sh """
+                                terraform init -reconfigure
+                            """
+                        }
                     }
                 }
             }
@@ -39,13 +40,12 @@ pipeline {
             steps {
                 script {
                     dir('Jenkins-roboshop/jenkins-roboshop-infra/10-SG'){
-                    withAWS(credentials: 'aws-creds', region: 'us-east-1') {
-                        sh """
-                            
-                            terraform plan
-                        """
+                        withAWS(credentials: 'aws-creds', region: 'us-east-1') {
+                            sh """
+                                terraform plan
+                            """
+                        }
                     }
-                }
                 }
             }
         }
@@ -53,12 +53,11 @@ pipeline {
             steps {
                 script {
                     dir('Jenkins-roboshop/jenkins-roboshop-infra/10-SG'){
-                    withAWS(credentials: 'aws-creds', region: 'us-east-1') {
-                        sh """
-                           
-                            terraform apply -auto-approve
-                        """
-                    }
+                        withAWS(credentials: 'aws-creds', region: 'us-east-1') {
+                            sh """
+                                terraform apply -auto-approve
+                            """
+                        }
                     }
                 }
             }
