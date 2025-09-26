@@ -1,17 +1,17 @@
 pipeline {
     agent  {
-        label 'AGENT-1'
+        label 'AGENT-1'  // Jenkins agent where pipeline will execute
     }
     environment { 
-        appVersion = ''
-        REGION = "us-east-1"
-        ACC_ID = "741448928336"
-        PROJECT = "roboshop"
+        appVersion = ''                     // Application version placeholder
+        REGION = "us-east-1"               // AWS region for deployment
+        ACC_ID = "741448928336"            // AWS Account ID
+        PROJECT = "roboshop"               // Project name for resource tagging
     }
     options {
-        timeout(time: 30, unit: 'MINUTES') 
-        disableConcurrentBuilds()
-        ansiColor('xterm')
+        timeout(time: 30, unit: 'MINUTES') // Pipeline timeout to prevent hanging builds
+        disableConcurrentBuilds()          // Prevents multiple simultaneous pipeline runs
+        ansiColor('xterm')                 // Enables colored console output
     }
     /* parameters {
         string(name: 'PERSON', defaultValue: 'Mr Jenkins', description: 'Who should I say hello to?')
@@ -20,13 +20,15 @@ pipeline {
         choice(name: 'CHOICE', choices: ['One', 'Two', 'Three'], description: 'Pick something')
         password(name: 'PASSWORD', defaultValue: 'SECRET', description: 'Enter a password') 
     } */
-    // Build
+    // Security Groups Infrastructure Pipeline
     stages {
         stage('init') {
             steps {
                 script {
+                    // Navigate to the 10-SG directory containing Terraform files
                     dir('Jenkins-roboshop/jenkins-roboshop-infra/10-SG'){
-                        withAWS(credentials: 'aws-creds', region: 'us-east-1') {
+                        // Use AWS credentials for Terraform operations
+                        withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1') {
                             sh """
                                 terraform init -reconfigure
                             """
@@ -39,10 +41,12 @@ pipeline {
         stage('plan') {
             steps {
                 script {
+                    // Navigate to the 10-SG directory containing Terraform files
                     dir('Jenkins-roboshop/jenkins-roboshop-infra/10-SG'){
-                        withAWS(credentials: 'aws-creds', region: 'us-east-1') {
+                        // Use AWS credentials for Terraform operations
+                        withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1') {
                             sh """
-                                terraform plan
+                                terraform plan  # Show what resources will be created/modified
                             """
                         }
                     }
@@ -52,53 +56,61 @@ pipeline {
         stage('apply') {
             steps {
                 script {
+                    // Navigate to the 10-SG directory containing Terraform files
                     dir('Jenkins-roboshop/jenkins-roboshop-infra/10-SG'){
-                        withAWS(credentials: 'aws-creds', region: 'us-east-1') {
+                        // Use AWS credentials for Terraform operations
+                        withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1') {
                             sh """
-                                terraform apply -auto-approve
+                                terraform apply -auto-approve  # Create security groups automatically
                             """
                         }
                     }
                 }
             }
         }
+        // Parallel execution of dependent infrastructure components
         stage('Bastion EKS ACM ALB') {
             parallel {
                 stage('Trigger Bastion') {
                     steps {
                         script {
+                            // Launch bastion host infrastructure pipeline
                             build job: '20-bastion', 
-                            propagate: false,  // even SG fails VPC will not be effected
-                            wait: false // VPC will not wait for SG pipeline completion
+                            propagate: false,  // Don't fail this pipeline if bastion fails
+                            wait: false        // Don't wait for bastion completion
                         }
                     }
                 }
                 stage('Trigger EKS') {
                     steps {
                         script {
+                            // Launch EKS cluster infrastructure pipeline
                             build job: '80-eks', 
-                            propagate: false,  // even SG fails VPC will not be effected
-                            wait: false // VPC will not wait for SG pipeline completion
+                            propagate: false,  // Don't fail this pipeline if EKS fails
+                            wait: false        // Don't wait for EKS completion
                         }
                     }
                 }
                 stage('ACM') {
                     steps {
                         script {
+                            // Launch SSL certificate (ACM) pipeline
                             build job: '60-acm', 
-                            propagate: false,  // even SG fails VPC will not be effected
-                            wait: false // VPC will not wait for SG pipeline completion
+                            propagate: false,  // Don't fail this pipeline if ACM fails
+                            wait: false        // Don't wait for ACM completion
                         }
                     }  
                 }
             }
         }
+        // ALB depends on other components, so run it after parallel stage
         stage('Trigger ALB') {
             steps {
                 script {
+                    // Launch Application Load Balancer pipeline
                     build job: '70-frontend-alb', 
-                    propagate: false,  // even SG fails VPC will not be effected
-                    wait: false // VPC will not wait for SG pipeline completion
+                    propagate: false,  // Don't fail this pipeline if ALB fails
+                    wait: false        // Don't wait for ALB completion
                 }
             }
         }
@@ -108,14 +120,14 @@ pipeline {
 
     post { 
         always { 
-            echo 'I will always say Hello again!'
-            deleteDir()
+            echo 'Security Groups pipeline completed - cleaning up workspace'
+            deleteDir()  // Clean workspace to free up disk space
         }
         success { 
-            echo 'Hello Success'
+            echo 'Security Groups created successfully! Dependent pipelines triggered.'
         }
         failure { 
-            echo 'Hello Failure'
+            echo 'Security Groups creation failed! Check logs for details.'
         }
     }
 }

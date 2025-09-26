@@ -1,6 +1,21 @@
 pipeline {
     agent  {
-        label 'AGENT-1'
+                                                               script {
+                        dir('Jenkins-roboshop/jenkins-roboshop-infra/70-frontend-alb'){
+                        withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1') {
+                            sh """
+                                terraform apply -auto-approve
+                            """script {
+                        dir('Jenkins-roboshop/jenkins-roboshop-infra/70-frontend-alb'){
+                        withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1') {
+                            sh """
+                                terraform plan
+                            """cript {
+                        dir('Jenkins-roboshop/jenkins-roboshop-infra/70-frontend-alb'){
+                        withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1') {
+                            sh """
+                                terraform init -reconfigure
+                            """label 'AGENT-1'
     }
     environment { 
         appVersion = ''
