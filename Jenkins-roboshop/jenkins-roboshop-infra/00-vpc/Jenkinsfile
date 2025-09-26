@@ -23,7 +23,7 @@ pipeline {
             steps {
                 script{
                     dir('Jenkins-roboshop/jenkins-roboshop-infra/00-vpc'){
-                        withAWS(credentials: 'aws-credentials', region: 'us-east-1'){
+                        withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1'){
                             sh """
                                 echo "00-vpc infra is creating...! "
                                 
@@ -36,13 +36,11 @@ pipeline {
             }
         }
 
-
-
         stage('plan'){
             steps{
                 script{
                     dir('Jenkins-roboshop/jenkins-roboshop-infra/00-vpc'){
-                    withAWS(credentials: 'aws-credentials', region: 'us-east-1'){
+                    withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1'){
                         sh """
                         echo "terraform planning is going"
                         
