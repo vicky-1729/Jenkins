@@ -1,599 +1,94 @@
 pipeline {
-    agent any  // Can run on any available agent
-    
-    // Pipeline options and configurations
-    options {
-        timeout(time: 60, unit: 'MINUTES')     // Pipeline timeout
-        retry(2)                               // Retry failed pipeline twice
-        disableConcurrentBuilds()              // Prevent parallel execution
-        timestamps()                           // Add timestamps to logs
-        ansiColor('xterm')                     // Enable colored output
-        buildDiscarder(logRotator(              // Keep only last 10 builds
-            numToKeepStr: '10',
-            artifactNumToKeepStr: '5'
-        ))
+    agent {
+        label 'AGENT-1'
     }
     
-    // Global environment variables
     environment {
         APP_NAME = 'roboshop'
-        VERSION = "1.0.${BUILD_NUMBER}"
-        DOCKER_REGISTRY = 'your-registry.com'
-        AWS_DEFAULT_REGION = 'us-east-1'
-        SONAR_PROJECT_KEY = 'roboshop-project'
-        ARTIFACT_NAME = "${APP_NAME}-${VERSION}"
-        EMAIL_RECIPIENTS = 'team@company.com'
-        SLACK_CHANNEL = '#deployments'
+        COURSE = 'jenkins'
     }
     
-    // Build parameters for user input
+    options {
+        disableConcurrentBuilds()
+        retry(2)
+    }
+
     parameters {
-        choice(
-            name: 'ENVIRONMENT',
-            choices: ['dev', 'stage', 'prod'],
-            description: 'Select deployment environment'
-        )
-        choice(
-            name: 'BUILD_TYPE',
-            choices: ['full', 'quick', 'release'],
-            description: 'Type of build to execute'
-        )
-        booleanParam(
-            name: 'RUN_TESTS',
-            defaultValue: true,
-            description: 'Execute automated tests?'
-        )
-        booleanParam(
-            name: 'DEPLOY_AFTER_BUILD',
-            defaultValue: false,
-            description: 'Auto-deploy after successful build?'
-        )
-        string(
-            name: 'BRANCH',
-            defaultValue: 'main',
-            description: 'Git branch to build from'
-        )
-        string(
-            name: 'DOCKER_TAG',
-            defaultValue: 'latest',
-            description: 'Docker image tag (optional)'
-        )
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'stage', 'prod'], description: 'Select environment')
+        booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run tests?')
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Git branch')
     }
-    
-    // Build triggers
-    triggers {
-        githubPush()                          // Trigger on GitHub push
-        pollSCM('H/15 * * * *')              // Poll SCM every 15 minutes (backup)
-        cron('H 2 * * 1-5')                  // Weekly build on weekdays at 2 AM
-    }
-    
-    // Main pipeline stages
+
+
     stages {
-        
-        // ===========================================
-        // INITIALIZATION & SETUP STAGES
-        // ===========================================
-        
-        stage('🚀 Pipeline Initialize') {
+        stage('Build') {
             steps {
                 script {
-                    echo "╔══════════════════════════════════════════╗"
-                    echo "║          ROBOSHOP CI/CD PIPELINE         ║"
-                    echo "╠══════════════════════════════════════════╣"
-                    echo "║ App Name: ${APP_NAME}"
-                    echo "║ Version: ${VERSION}"
-                    echo "║ Environment: ${params.ENVIRONMENT}"
-                    echo "║ Build Type: ${params.BUILD_TYPE}"
-                    echo "║ Branch: ${params.BRANCH}"
-                    echo "║ Build Number: ${BUILD_NUMBER}"
-                    echo "║ Started by: ${BUILD_USER ?: 'System'}"
-                    echo "╚══════════════════════════════════════════╝"
+                    echo "Building ${APP_NAME}"
+                    echo "Environment: ${params.ENVIRONMENT}"
+                    echo "Branch: ${params.BRANCH_NAME}"
                     
-                    // Set dynamic environment variables
-                    env.BUILD_USER = wrap([$class: 'BuildUser']) {
-                        return env.BUILD_USER ?: 'jenkins'
+                    withAWS(credentials: 'AWS_CRED', region: 'us-east-1') {
+                        sh 'aws s3 ls'
                     }
                 }
-            }
-        }
-        
-        stage('📥 Source Code Checkout') {
-            steps {
-                script {
-                    echo "Checking out source code from ${params.BRANCH} branch..."
-                    
-                    // Git checkout with credentials
-                    checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: "*/${params.BRANCH}"]],
-                        userRemoteConfigs: [[
-                            url: 'https://github.com/vicky-1729/roboshop-infra.git',
-                            credentialsId: 'github-credentials'
-                        ]]
-                    ])
-                    
-                    // Get commit info
-                    env.GIT_COMMIT = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
-                    env.GIT_AUTHOR = sh(returnStdout: true, script: 'git log -1 --pretty=%an').trim()
-                    
-                    echo "✅ Code checkout completed"
-                    echo "📝 Commit: ${env.GIT_COMMIT[0..7]}"
-                    echo "👤 Author: ${env.GIT_AUTHOR}"
-                }
-            }
-        }
-        
-        // ===========================================
-        // PARALLEL ANALYSIS & PREPARATION STAGES
-        // ===========================================
-        
-        stage('🔄 Parallel Analysis & Setup') {
-            parallel {
-                stage('🔍 Code Quality Analysis') {
-                    steps {
-                        script {
-                            echo "Running code quality checks..."
-                            
-                            // SonarQube analysis
-                            withSonarQubeEnv('SonarQube') {
-                                sh """
-                                    echo "Running SonarQube analysis..."
-                                    # sonar-scanner \\
-                                    #   -Dsonar.projectKey=${SONAR_PROJECT_KEY} \\
-                                    #   -Dsonar.sources=src \\
-                                    #   -Dsonar.host.url=\${SONAR_HOST_URL}
-                                """
-                            }
-                            
-                            echo "✅ Code quality analysis passed"
-                        }
-                    }
-                }
-                
-                stage('🔒 Security Scanning') {
-                    steps {
-                        script {
-                            echo "Running security scans..."
-                            
-                            // Dependency check
-                            sh """
-                                echo "Checking for vulnerable dependencies..."
-                                # npm audit --audit-level moderate
-                                # snyk test --severity-threshold=high
-                            """
-                            
-                            echo "✅ Security scanning completed"
-                        }
-                    }
-                }
-                
-                stage('📦 Environment Setup') {
-                    steps {
-                        script {
-                            echo "Setting up build environment..."
-                            
-                            // Install dependencies
-                            sh """
-                                echo "Installing dependencies..."
-                                # npm ci --only=production
-                                # pip install -r requirements.txt
-                            """
-                            
-                            echo "✅ Environment setup completed"
-                        }
-                    }
-                }
-            }
-        }
-        
-        // ===========================================
-        // BUILD & TESTING STAGES
-        // ===========================================
-        
-        stage('🔨 Application Build') {
-            steps {
-                script {
-                    echo "Building application..."
-                    
-                    if (params.BUILD_TYPE == 'quick') {
-                        echo "🚀 Quick build mode"
-                        sh """
-                            echo "Running quick build..."
-                            # npm run build:dev
-                        """
-                    } else if (params.BUILD_TYPE == 'release') {
-                        echo "🎯 Release build mode"
-                        sh """
-                            echo "Running release build..."
-                            # npm run build:prod
-                        """
-                    } else {
-                        echo "🔄 Standard build mode"
-                        sh """
-                            echo "Running standard build..."
-                            # npm run build
-                        """
-                    }
-                    
-                    echo "✅ Application build completed"
-                }
-            }
-        }
-        
-        stage('🧪 Parallel Testing Suite') {
-            when {
-                expression { return params.RUN_TESTS }
-            }
-            parallel {
-                stage('🔬 Unit Tests') {
-                    steps {
-                        script {
-                            echo "Running unit tests..."
-                            sh """
-                                echo "Executing unit test suite..."
-                                # npm run test:unit
-                                # python -m pytest tests/unit/
-                            """
-                            
-                            echo "✅ Unit tests completed"
-                        }
-                    }
-                }
-                
-                stage('🔗 Integration Tests') {
-                    steps {
-                        script {
-                            echo "Running integration tests..."
-                            sh """
-                                echo "Starting integration test suite..."
-                                # npm run test:integration
-                            """
-                            
-                            echo "✅ Integration tests completed"
-                        }
-                    }
-                }
-                
-                stage('🎭 End-to-End Tests') {
-                    when {
-                        expression { 
-                            return params.ENVIRONMENT != 'prod' && params.BUILD_TYPE != 'quick'
-                        }
-                    }
-                    steps {
-                        script {
-                            echo "Running E2E tests..."
-                            sh """
-                                echo "Starting E2E test suite..."
-                                # npm run test:e2e
-                            """
-                            
-                            echo "✅ E2E tests completed"
-                        }
-                    }
-                }
-            }
-        }
-        
-        // ===========================================
-        // ARTIFACT CREATION & PACKAGING
-        // ===========================================
-        
-        stage('📦 Create Artifacts') {
-            parallel {
-                stage('🐳 Docker Image Build') {
-                    steps {
-                        script {
-                            echo "Building Docker image..."
-                            
-                            def dockerTag = params.DOCKER_TAG == 'latest' ? VERSION : params.DOCKER_TAG
-                            def imageName = "${DOCKER_REGISTRY}/${APP_NAME}:${dockerTag}"
-                            
-                            sh """
-                                echo "Building Docker image: ${imageName}"
-                                # docker build -t ${imageName} .
-                            """
-                            
-                            echo "✅ Docker image created: ${imageName}"
-                            env.DOCKER_IMAGE = imageName
-                        }
-                    }
-                }
-                
-                stage('📋 Application Package') {
-                    steps {
-                        script {
-                            echo "Creating application package..."
-                            
-                            sh """
-                                echo "Packaging application artifacts..."
-                                # tar -czf ${ARTIFACT_NAME}.tar.gz dist/
-                            """
-                            
-                            echo "✅ Application package created"
-                        }
-                    }
-                }
-            }
-        }
-        
-        // ===========================================
-        // APPROVAL & DEPLOYMENT STAGES
-        // ===========================================
-        
-        stage('✋ Deployment Approval') {
-            when {
-                anyOf {
-                    expression { return params.ENVIRONMENT == 'prod' }
-                    expression { return params.DEPLOY_AFTER_BUILD }
-                }
-            }
-            steps {
-                script {
-                    def approvalChoice = input(
-                        message: 'Do you want to deploy to ' + params.ENVIRONMENT + '?',
-                        ok: 'Approve Deployment',
-                        parameters: [
-                            choice(
-                                name: 'DEPLOYMENT_ACTION',
-                                choices: [
-                                    'Deploy Now',
-                                    'Deploy with Monitoring', 
-                                    'Cancel Deployment'
-                                ],
-                                description: 'Select deployment action'
-                            )
-                        ],
-                        submitter: 'admin,release-manager',
-                        submitterParameter: 'APPROVED_BY'
-                    )
-                    
-                    echo "Deployment approved by: ${APPROVED_BY}"
-                    
-                    if (approvalChoice.DEPLOYMENT_ACTION == 'Cancel Deployment') {
-                        error('❌ Deployment cancelled by user')
-                    }
-                    
-                    env.DEPLOYMENT_APPROVED = 'true'
-                }
-            }
-        }
-        
-        stage('🚀 Application Deployment') {
-            when {
-                anyOf {
-                    expression { return params.DEPLOY_AFTER_BUILD }
-                    expression { return env.DEPLOYMENT_APPROVED == 'true' }
-                }
-            }
-            steps {
-                script {
-                    echo "Starting deployment to ${params.ENVIRONMENT}..."
-                    
-                    // Deploy based on environment
-                    if (params.ENVIRONMENT == 'dev') {
-                        sh """
-                            echo "Deploying to development..."
-                            # kubectl apply -f k8s/dev/
-                        """
-                    } else if (params.ENVIRONMENT == 'stage') {
-                        sh """
-                            echo "Deploying to staging..."
-                            # kubectl apply -f k8s/stage/
-                        """
-                    } else if (params.ENVIRONMENT == 'prod') {
-                        sh """
-                            echo "Deploying to production..."
-                            # kubectl apply -f k8s/prod/
-                        """
-                    }
-                    
-                    echo "✅ Deployment completed successfully"
-                }
-            }
-        }
-        
-        // ===========================================
-        // POST-DEPLOYMENT VERIFICATION
-        // ===========================================
-        
-        stage('🔍 Post-Deployment Tests') {
-            when {
-                expression { return env.DEPLOYMENT_APPROVED == 'true' }
-            }
-            parallel {
-                stage('🏥 Health Checks') {
-                    steps {
-                        script {
-                            echo "Running health checks..."
-                            
-                            retry(3) {
-                                sh """
-                                    echo "Checking application health..."
-                                    # curl -f http://${APP_NAME}/health
-                                """
-                            }
-                            
-                            echo "✅ Health checks passed"
-                        }
-                    }
-                }
-                
-                stage('🚦 Smoke Tests') {
-                    steps {
-                        script {
-                            echo "Running smoke tests..."
-                            
-                            sh """
-                                echo "Executing smoke test suite..."
-                                # npm run test:smoke
-                            """
-                            
-                            echo "✅ Smoke tests passed"
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    // ===========================================
-    // POST-BUILD ACTIONS
-    // ===========================================
-    
-    post {
-        always {
-            script {
-                echo "🧹 Cleaning up workspace..."
-                cleanWs()
-            }
-        }
-        
-        success {
-            script {
-                echo "🎉 Pipeline completed successfully!"
-                
-                // Success notification
-                slackSend(
-                    channel: env.SLACK_CHANNEL,
-                    color: 'good',
-                    message: """
-✅ *SUCCESS* - ${APP_NAME} Pipeline
-├ 📦 *Version:* ${VERSION}
-├ 🌍 *Environment:* ${params.ENVIRONMENT}
-├ 🔗 *Branch:* ${params.BRANCH}
-└ ⏱️ *Duration:* ${currentBuild.durationString}
-"""
-                )
-            }
-        }
-        
-        failure {
-            script {
-                echo "❌ Pipeline failed!"
-                
-                // Failure notification
-                slackSend(
-                    channel: env.SLACK_CHANNEL,
-                    color: 'danger',
-                    message: """
-❌ *FAILED* - ${APP_NAME} Pipeline  
-├ 📦 *Version:* ${VERSION}
-├ 🌍 *Environment:* ${params.ENVIRONMENT}
-└ 💥 *Failed at:* ${env.STAGE_NAME ?: 'Unknown'}
-"""
-                )
-            }
-        }
-        
-        unstable {
-            echo "⚠️ Pipeline completed with warnings"
-        }
-        
-        aborted {
-            echo "🛑 Pipeline was aborted"
-        }
-    }
-}
-                echo "Creating deployable artifact: ${ARTIFACT_NAME}"
-                // sh "zip -r ${ARTIFACT_NAME}.zip dist/*"
-                
-                // Archive the artifact in Jenkins
-                // archiveArtifacts artifacts: "${ARTIFACT_NAME}.zip", fingerprint: true
-            }
-        }
-        
-        stage('Approval Required') {
-            steps {
-                script {
-                    // Simple input function with agree or not
-                    def userChoice = input(
-                        message: 'Do you agree to proceed with deployment?',
-                        ok: 'I Agree',
-                        parameters: [
-                            choice(
-                                name: 'PROCEED',
-                                choices: ['Yes, I agree', 'No, cancel deployment'],
-                                description: 'Select your choice to proceed or cancel'
-                            )
-                        ],
-                        submitter: 'admin,deployer',  // Who can approve
-                        submitterParameter: 'APPROVED_BY'
-                    )
-                    
-                    echo "User choice: ${userChoice}"
-                    echo "Approved by: ${APPROVED_BY}"
-                    
-                    if (userChoice == 'No, cancel deployment') {
-                        error('Deployment cancelled by user')
-                    } else {
-                        echo '✅ User agreed to proceed with deployment'
-                    }
-                }
-            }
-        }
-        
-        stage('Deploy to ${params.ENVIRONMENT}') {
-            steps {
-                echo "Deploying to ${params.ENVIRONMENT} environment..."
-                
-                // Example of deployment commands
-                // sh "deploy-script.sh --env=${params.ENVIRONMENT} --version=${VERSION}"
-            }
-        }
-        
-        stage('Integration Tests') {
-            when {
-                expression { return params.RUN_TESTS && params.ENVIRONMENT != 'prod' }
-            }
-            steps {
-                echo "Running integration tests against ${params.ENVIRONMENT} environment..."
-                // sh "run-integration-tests.sh --env=${params.ENVIRONMENT}"
             }
         }
         
         stage('Approval') {
-            when {
-                expression { return params.ENVIRONMENT == 'prod' }
-            }
             steps {
                 input(
-                    message: "Deploy to PRODUCTION environment?",
-                    ok: "Approve",
-                    submitter: "vs-admin"
+                    message: 'Proceed with deployment?',
+                    ok: 'Deploy',
+                    submitter: 'admin'
                 )
             }
         }
+        
+        stage('Testing') {
+            when { params.RUN_TESTS }
+            steps {
+                echo "Running tests..."
+                sh '''
+                    echo "Running unit tests"
+                    echo "Running integration tests"
+                    echo "All tests passed"
+                '''
+            }
+        }
+
+
+        
+        stage('Deploy') {
+            steps {
+                withAWS(credentials: 'AWS_CRED', region: 'us-east-1') {
+                    sh '''
+                        echo "Deploying to ${ENVIRONMENT} environment..."
+                        echo "Deployment completed successfully"
+                    '''
+                }
+            }
+        }
+        stage('Code Push') {
+            steps {
+                echo 'Pushing to git repository...'
+                sh '''
+                    echo "Git operations..."
+                    echo "Code pushed successfully"
+                '''
+            }
+        }
     }
-    
+
     post {
-        always {
-            echo "Pipeline execution completed. Cleaning up resources..."
-            // cleanWs() // Uncomment to clean workspace after build
-        }
-        
         success {
-            echo "Build Successful! Artifact ${ARTIFACT_NAME} is ready."
-            // Notification example
-            // mail to: "${EMAIL_RECIPIENTS}", 
-            //      subject: "Build Successful: ${JOB_NAME} #${BUILD_NUMBER}",
-            //      body: "Build completed successfully. Check: ${BUILD_URL}"
+            echo 'Pipeline completed successfully!'
         }
-        
         failure {
-            echo "Build Failed! Check logs for details."
-            // Notification example
-            // mail to: "${EMAIL_RECIPIENTS}", 
-            //      subject: "Build Failed: ${JOB_NAME} #${BUILD_NUMBER}",
-            //      body: "Build failed. Check: ${BUILD_URL}"
+            echo 'Pipeline failed!'
         }
-        
-        unstable {
-            echo "Build is unstable! Tests may have failed."
-        }
-        
-        changed {
-            echo "Build status changed from previous build."
+        always {
+            echo 'Pipeline finished'
         }
     }
 }
