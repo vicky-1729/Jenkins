@@ -66,24 +66,24 @@ pipeline {
             }
         }
 
-        stage('Trigger CD Pipeline') {
-            when {
-                expression { params.DEPLOY_TO_CD == true }
-            }
-            steps {
-                script {
-                    echo "Triggering CD pipeline for deployment..."
+        // stage('Trigger CD Pipeline') {
+        //     when {
+        //         expression { params.DEPLOY_TO_CD == true }
+        //     }
+        //     steps {
+        //         script {
+        //             echo "Triggering CD pipeline for deployment..."
                     
-                    // Trigger the CD pipeline with the app version
-                    build job: 'catalogue-cd', 
-                          parameters: [
-                              string(name: 'APP_VERSION', value: "${appVersion}"),
-                              string(name: 'ENVIRONMENT', value: 'dev')
-                          ],
-                          wait: false  // Don't wait for CD pipeline to complete
-                }
-            }
-        }
+        //             // Trigger the CD pipeline with the app version
+        //             build job: 'catalogue-cd', 
+        //                   parameters: [
+        //                       string(name: 'APP_VERSION', value: "${appVersion}"),
+        //                       string(name: 'ENVIRONMENT', value: 'dev')
+        //                   ],
+        //                   wait: false  // Don't wait for CD pipeline to complete
+        //         }
+        //     }
+        // }
     }
 
     post {
