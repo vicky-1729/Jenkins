@@ -1,6 +1,14 @@
 pipeline {
     agent { label 'AGENT-1' } // Specifies which Jenkins agent to run this pipeline on
 
+    parameters {
+        booleanParam(
+            name: 'DEPLOY_TO_CD', 
+            defaultValue: false, 
+            description: 'Check this box to trigger CD pipeline after successful CI'
+        )
+    }
+
     options {
         timeout(time: 30, unit: 'MINUTES') // Pipeline will time out after 30 min
         retry(1)                           // Retry the entire pipeline once if it fails
@@ -20,9 +28,11 @@ pipeline {
                 script {
                     dir('Jenkins-roboshop/catalogue') { // Change to the correct directory containing package.json
                         echo "Building....!"
-                        // Read package.json to get version - this will be used for Docker tag
-                        def packageJson = readJSON file: 'package.json'
-                        appVersion = packageJson.version
+                        // Read package.json to get version using shell command
+                        appVersion = sh(
+                            script: "grep '\"version\":' package.json | cut -d'\"' -f4",
+                            returnStdout: true
+                        ).trim()
                         echo "Package version: ${appVersion}"
                         
                         // Install dependencies for the Node.js application
@@ -69,11 +79,35 @@ pipeline {
                 }
             }
         }
+
+        stage('Trigger CD Pipeline') {
+            when {
+                expression { params.DEPLOY_TO_CD == true }
+            }
+            steps {
+                script {
+                    echo "Triggering CD pipeline for deployment..."
+                    
+                    // Trigger the CD pipeline with the app version
+                    build job: 'catalogue-cd', 
+                          parameters: [
+                              string(name: 'APP_VERSION', value: "${appVersion}"),
+                              string(name: 'ENVIRONMENT', value: 'dev')
+                          ],
+                          wait: false  // Don't wait for CD pipeline to complete
+                }
+            }
+        }
     }
 
     post {
         success {
             echo "Success..!"
+            if (params.DEPLOY_TO_CD) {
+                echo "CD pipeline has been triggered for deployment with version: ${appVersion}"
+            } else {
+                echo "CI completed successfully. CD pipeline not triggered (DEPLOY_TO_CD = false)"
+            }
             // Additional actions to take on successful completion can be added here
             // Examples: Slack notifications, email notifications, trigger downstream jobs
         }
