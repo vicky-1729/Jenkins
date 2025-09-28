@@ -1,6 +1,14 @@
 pipeline {
     agent { label 'AGENT-1' } // Specifies which Jenkins agent to run this pipeline on
 
+    parameters {
+        booleanParam(
+            name: 'DEPLOY_TO_CD', 
+            defaultValue: false, 
+            description: 'Check this box to trigger CD pipeline after successful CI'
+        )
+    }
+
     options {
         timeout(time: 30, unit: 'MINUTES') // Pipeline will time out after 30 min
         retry(1)                           // Retry the entire pipeline once if it fails
@@ -37,18 +45,6 @@ pipeline {
         stage('Docker image Build') {
             steps {
                 script {    
-                    // Interactive component - ask for user confirmation before proceeding
-                    // def userChoice = input(
-                    //     message: "Do you want to build & push Docker image?",
-                    //     parameters: [
-                    //         choice(name: 'ANSWER', choices: ['YES', 'NO'], description: 'Select YES to continue')
-                    //     ]
-                    // )
-
-                    // // Early termination if user declines to proceed
-                    // if (userChoice == 'NO') {
-                    //     error("Build aborted by user") 
-                    // }
                         
                     dir('Jenkins-roboshop/catalogue') {
                         // Use AWS credentials for ECR access
@@ -69,22 +65,44 @@ pipeline {
                 }
             }
         }
+
+        stage('Trigger CD Pipeline') {
+            when {
+                expression { params.DEPLOY_TO_CD == true }
+            }
+            steps {
+                script {
+                    echo "Triggering CD pipeline for deployment..."
+                    
+                    // Trigger the CD pipeline with the app version
+                    build job: 'catalogue-cd', 
+                          parameters: [
+                              string(name: 'APP_VERSION', value: "${appVersion}"),
+                              string(name: 'ENVIRONMENT', value: 'dev')
+                          ],
+                          wait: false  // Don't wait for CD pipeline to complete
+                }
+            }
+        }
     }
 
     post {
         success {
             echo "Success..!"
-            // Additional actions to take on successful completion can be added here
-            // Examples: Slack notifications, email notifications, trigger downstream jobs
+            if (params.DEPLOY_TO_CD) {
+                echo "CD pipeline has been triggered for deployment"
+            } else {
+                echo "CI completed successfully. CD pipeline not triggered (DEPLOY_TO_CD = false)"
+            }
+
         }
         failure {
             echo "Failure...!"
-            // Actions to take on failure - could add notifications or cleanup steps
+           
         }
         always {
             echo "This is roboshop-project"
-            // Steps that should always run regardless of build result
-            // Example: cleanWs() would clean up the workspace
+            
         }
     }
 }
