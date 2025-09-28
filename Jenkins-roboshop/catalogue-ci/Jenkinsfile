@@ -16,7 +16,6 @@ pipeline {
         timestamps()                       // Adds timestamps to console output
     }
     environment {
-        appVersion = ''                    // Will store version from package.json
         ACC_ID = "741448928336"            // AWS Account ID
         REGION = "us-east-1"               // AWS Region
         PROJECT = "roboshop"               // Project name used in ECR path
@@ -26,10 +25,10 @@ pipeline {
         stage('Reading package.json ') {
             steps {
                 script {
-                    dir('Jenkins-roboshop/catalogue') { // Change to the correct directory containing package.json
+                    dir('Jenkins-roboshop/catalogue-ci') { // Change to the correct directory containing package.json
                         echo "Building....!"
                         // Read package.json to get version using shell command
-                        appVersion = sh(
+                        def appVersion = sh(
                             script: "grep '\"version\":' package.json | cut -d'\"' -f4",
                             returnStdout: true
                         ).trim()
@@ -60,7 +59,7 @@ pipeline {
                     //     error("Build aborted by user") 
                     // }
                         
-                    dir('Jenkins-roboshop/catalogue') {
+                    dir('Jenkins-roboshop/catalogue-ci') {
                         // Use AWS credentials for ECR access
                         withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1') {
                             sh """
