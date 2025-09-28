@@ -28,11 +28,11 @@ pipeline {
                     dir('Jenkins-roboshop/catalogue-ci') { // Change to the correct directory containing package.json
                         echo "Building....!"
                         // Read package.json to get version using shell command
-                        def appVersion = sh(
+                        env.APP_VERSION = sh(
                             script: "grep '\"version\":' package.json | cut -d'\"' -f4",
                             returnStdout: true
                         ).trim()
-                        echo "Package version: ${appVersion}"
+                        echo "Package version: ${env.APP_VERSION}"
                         
                         // Install dependencies for the Node.js application
                         sh """
@@ -64,14 +64,15 @@ pipeline {
                         withAWS(credentials: 'AWS-VICKY-CRED', region: 'us-east-1') {
                             sh """
                                 echo "Building Docker Image...pushing to ECR "
+                                echo "Using version: ${env.APP_VERSION}"
                                 # Login to Amazon ECR
                                 aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com
                                 
                                 # Build the Docker image with version tag from package.json
-                                docker build -t ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion} .
+                                docker build -t ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com/${PROJECT}/${COMPONENT}:${env.APP_VERSION} .
                                 
                                 # Push the image to ECR repository
-                                docker push ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion}
+                                docker push ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com/${PROJECT}/${COMPONENT}:${env.APP_VERSION}
                             """
                         }
                     }
@@ -90,7 +91,7 @@ pipeline {
                     // Trigger the CD pipeline with the app version
                     build job: 'catalogue-cd', 
                           parameters: [
-                              string(name: 'APP_VERSION', value: "${appVersion}"),
+                              string(name: 'APP_VERSION', value: "${env.APP_VERSION}"),
                               string(name: 'ENVIRONMENT', value: 'dev')
                           ],
                           wait: false  // Don't wait for CD pipeline to complete
@@ -104,7 +105,7 @@ pipeline {
             echo "Success..!"
             script {
                 if (params.DEPLOY_TO_CD) {
-                    echo "CD pipeline has been triggered for deployment with version: ${appVersion}"
+                    echo "CD pipeline has been triggered for deployment with version: ${env.APP_VERSION}"
                 } else {
                     echo "CI completed successfully. CD pipeline not triggered (DEPLOY_TO_CD = false)"
                 }
