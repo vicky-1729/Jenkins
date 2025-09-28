@@ -103,10 +103,12 @@ pipeline {
     post {
         success {
             echo "Success..!"
-            if (params.DEPLOY_TO_CD) {
-                echo "CD pipeline has been triggered for deployment with version: ${appVersion}"
-            } else {
-                echo "CI completed successfully. CD pipeline not triggered (DEPLOY_TO_CD = false)"
+            script {
+                if (params.DEPLOY_TO_CD) {
+                    echo "CD pipeline has been triggered for deployment with version: ${appVersion}"
+                } else {
+                    echo "CI completed successfully. CD pipeline not triggered (DEPLOY_TO_CD = false)"
+                }
             }
             // Additional actions to take on successful completion can be added here
             // Examples: Slack notifications, email notifications, trigger downstream jobs
