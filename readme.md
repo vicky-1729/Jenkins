@@ -4,6 +4,20 @@
 
 Enterprise-grade Jenkins CI/CD pipelines for microservices deployment on AWS EKS. This project demonstrates production-ready DevOps practices with automated testing, deployment safety, and rollback mechanisms.
 
+## 💬 Interview Question - Project Experience
+
+**"Tell me about your experience with Jenkins in your current project"**
+
+*"In my current project, we are using Jenkins as our main CI/CD tool. We've implemented a full DevSecOps pipeline, following a shift-left strategy – which means we do as much testing and scanning as possible in the early stages. For example, right after code is pushed to GitHub, Jenkins automatically triggers a pipeline. The first stage runs unit tests, static code analysis using SonarQube, and open-source dependency scanning using Nexus IQ. This helps us catch issues before the code even reaches QA.*
+
+*We also follow the build once, run anywhere approach. Jenkins builds the artifact just once in the DEV stage, usually as a Docker image, and then we promote that same image to QA, Staging, and Production with different configurations. This ensures consistency across environments and eliminates the "works in QA but fails in PROD" type of issues.*
+
+*Our pipeline is fully automated — after build and scanning, Jenkins deploys to the DEV environment. Then there's a manual approval step for QA. Once QA passes, the same artifact is automatically promoted to Stage and then PROD. We have integrated quality gates so that if SonarQube or security scans fail, the pipeline stops immediately (fail fast principle).*
+
+*We also run Docker image scanning with Trivy before pushing images to ECR, and we have a DAST stage in QA using OWASP ZAP to test runtime security. All of this runs in parallel where possible to reduce build time. Notifications are sent to our Teams channel so the team knows immediately if something fails.*
+
+*This setup has made our releases predictable and faster. Earlier, we used to take hours or days to find issues in QA, but now we catch most problems within minutes of code commit. It's a very stable and scalable setup."*
+
 ## 🏗️ Architecture
 
 ```
