@@ -1,0 +1,22 @@
+pipeline{
+    agent {
+        label "AGENT-1"
+    }
+    stages{
+        stage('Build'){
+            steps{
+                echo " Hello this building"
+            }
+        }
+        stage('Deploy'){
+            steps{
+                echo " Hello this Deploying"
+            }
+        }
+    }
+    post{
+        success{
+            echo "hello your pipline sucess"
+        } 
+    }
+}
