@@ -1,22 +1,46 @@
 pipeline{
-    agent {
+  #prebuild stage
+    agent{
         label "TEST-NODE"
     }
+    enviorment{
+
+    }
+    # stages
     stages{
         stage('Build'){
             steps{
-                echo " Hello this building"
+                echo "Building Stage"
             }
         }
-        stage('Deploy'){
+        stage('Deploying'){
             steps{
-                echo " Hello this Deploying"
+                echo "Deploying Stage"
+            }
+        }
+        stage('Scanning stage '){
+            steps{
+                echo "Scanning stage"
+            }
+        }
+        stage('testing stage'){
+            steps{
+                echo "Testing stage"
             }
         }
     }
+
     post{
-        success{
-            echo "hello your pipline sucess"
-        } 
+        always{
+            echo "i will print always bro"
+        }
+        sucess{
+            echo "your build was success"
+        }
+        failure
+        {
+            echo " your build was failure"
+        }
     }
+
 }
