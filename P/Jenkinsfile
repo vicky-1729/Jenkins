@@ -29,6 +29,14 @@ pipeline{
                 echo "Testing stage"
             }
         }
+        stage('Deploy to Prod') {
+    when {
+        expression { params.ENVIRONMENT == 'prod' }
+    }
+    steps {
+        echo "Deploying to production"
+    }
+    }
     }
 
     post{
