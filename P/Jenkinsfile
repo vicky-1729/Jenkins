@@ -3,9 +3,7 @@ pipeline{
     agent{
         label "TEST-NODE"
     }
-    environment{
-
-    }
+    
     // stages
     stages{
         stage('Build'){
