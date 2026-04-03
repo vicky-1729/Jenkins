@@ -1,12 +1,12 @@
 pipeline{
-  #prebuild stage
+  //prebuild stage
     agent{
         label "TEST-NODE"
     }
-    enviorment{
+    environment{
 
     }
-    # stages
+    // stages
     stages{
         stage('Build'){
             steps{
@@ -34,7 +34,7 @@ pipeline{
         always{
             echo "i will print always bro"
         }
-        sucess{
+        success{
             echo "your build was success"
         }
         failure
