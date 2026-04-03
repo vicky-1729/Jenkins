@@ -6,6 +6,10 @@ pipeline{
      parameters {
         choice(name: 'ENVIRONMENT', choices: ['dev', 'stage', 'prod'], description: 'Select environment')
      }
+     options {
+        disableConcurrentBuilds()
+
+    }
     // stages
     stages{
         stage('Build'){
